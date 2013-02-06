@@ -5,6 +5,29 @@ Creates keys and certificate requests via openssl.
 It tries to keep files, if there exist. But if you change one file,
 files which depend on it, will be recreated by this program.
 
+Install
+=======
+
+Dependencies
+------------
+
+You need GNU-make and openssl. sslmake is a Makefile, so you really need make!
+
+
+Install
+-------
+
+First clone this git-repository. Or download only sslmake.
+
+YOu only need to copy it to a directory, which found in your $PATH.
+
+	install --owner root --group root --mode 0755 -t /usr/local/bin sslmake
+
+But it's possible to run sslmake local, so, you do not need any install.
+
+	./sslmake exmaple.cnf
+
+
 Howto
 =====
 
@@ -21,23 +44,23 @@ Renewing and removing will follow in 'Second Use'.
 
 * Create the config:
 
-		# ./sslmake example.cnf
+		sslmake example.cnf
 
 	This will copy `/etc/ssl/openssl.cnf` to local directory.
 	Now you	edit this file and you can do next step.
 	Important are commonName_default and so on.
-	If you do not know the %.cnf, you should read a openssl-howto
+	If you do not know the openssl.cnf, you should read a openssl-howto
 	about `openssl.cnf`.
 
 * Create the KEY:
 
-		# ./sslmake %.key
+		sslmake exmaple.key
   
-	It will create a key-file %.key with a 4096 bit strong rsa.
+	It will create a key-file example.key with a 4096 bit strong rsa.
 
 * Create the CSR:
 
-		# ./sslmake %.csr
+		sslmake example.csr
   
-	This will use %.cnf as configfile and creates a key and the csr
+	This will use `example.cnf` as configfile and creates a key and the csr
 	if didn't exists. Everything in one step.
