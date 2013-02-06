@@ -1,0 +1,101 @@
+#!/bin/sh
+# vi:set filetype=makefile
+NULL=0  exec make "CALL=$0" "EXE=`which $0`" -f "`which $0`" -- "$@"
+
+EXE ?= sslmake
+CALL ?= `which $(EXE)`
+DEFAULTOPENSSLCNF ?= /etc/ssl/openssl.cnf
+S ?= .
+OPENSSL ?= /usr/bin/openssl
+GENRSA = $(OPENSSL) genrsa
+REQ = $(OPENSSL) req
+SIGN = $(OPENSSL) x509
+
+all: help
+--help -h: help
+--howto -H: howto
+--renew -r: renew
+--build -b: build
+
+help:
+	@echo "\
+Creates SSL-keys and -certificate requests named %.key/%.csr (replace % by name)\n\
+  --help -h: Display this help message.\n\
+  --howto -H:  Display a short howto.\n\
+  --renew -r:  Renews %.csr for all %.key.\n\
+  --build -b:  Builds %.csr and %.key for every %.cnf if doesn't exist.\n\
+  %.cnf:  Copies /etc/ssl/openssl.cnf to %.cnf.\n\
+  %.key:  Creates %.key.\n\
+  %.csr:  Creates %.csr and if doesn't exists %.key."
+
+howto:
+	@echo "\
+Making SSL-Certificates\n\
+=======================\n\
+\n\
+Description\n\
+-----------\n\
+\n\
+ Creates keys and certificate requests via openssl.\n\
+ It tries to keep files, if there exist. But if you change one file,\n\
+  files which depend on it, will be recreated by this program.\n\
+\n\
+Howto\n\
+-----\n\
+\n\
+First use\n\
+ If you creates something a first time, then you are alright here.\n\
+  Renewing and removing will follow in 'Second use'.\n\
+ If you want, you can create the csr directly without creating\n\
+  a key or a config.\n\
+\n\
+  Config:\n\
+   You can create an own configfile:\n\
+      # $(CALL) %.cnf\n\
+  \n\
+    This will copy /etc/ssl/openssl.cnf to local directory. Now you\n\
+     edit this file and you can do next step. You are allowed to create\n\
+     %.cnf, it isn't a must. If you didn't do it,\n\
+     /etc/ssl/openssl.cnf will be used.\n\
+  \n\
+  Key:\n\
+   Also, you can create a key without a csr:\n\
+      # $(CALL) %.key\n\
+  \n\
+    It will create a key-file %.key with a N bit strong rsa.\n\
+     N will be extracted by %.cnf\n\
+  \n\
+  CSR:\n\
+   Creating a csr is simple:\n\
+      # $(CALL) %.csr\n\
+  \n\
+    This will use %.cnf as configfile and creates a key and the csr\n\
+     if didn't exists. Everything in one step."
+
+renew: $(patsubst %.key,%.csr.new,$(wildcard *.key))
+build: $(patsubst %.cnf,%csr,$(wildcard *.cnf))
+
+%.del:
+	[ ! -e "$(*)" ] || mv --backup=numbered "$(*)" "$(*).`date +%Y-%m-%d`"
+	
+%.new: %.del
+	$(CALL) "$*"
+
+%.cnf:
+	cp "$(DEFAULTOPENSSLCNF)" "$(@)"
+
+%.key:
+	umask 177 ; $(GENRSA) -out "$(@)" 4096
+
+%.csr: %.cnf %.key
+	$(REQ) -config "$(*).cnf" -batch -nodes -new -key$$([ -e "$(*).key" ] || echo out ) "$(*).key" -out "$(@)"
+
+%.crt: %.csr serial root.crt root.key
+	$(SIGN) -req -days 365 -in "$(*).csr" -CA root.crt -CAkey root.key -CAserial "serial" -out "$(@)"
+
+%.pem: %.crt %.key
+	umask 177 ; cat $(^) > "$(@).bk"
+	mv "$(@).bk" "$(@)"
+
+.PHONY: all help howto build renew %.new %.del
+.PRECIOUS: %.csr %.key %.cnf %.pem
