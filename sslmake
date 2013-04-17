@@ -29,6 +29,11 @@ Creates SSL-keys and -certificate requests named %.key/%.csr (replace % by name)
 renew: $(patsubst %.key,%.csr.new,$(wildcard *.key))
 build: $(patsubst %.cnf,%csr,$(wildcard *.cnf))
 
+root.key:
+	@echo "root.crt keeper"
+root.crt:
+	@echo "root.crt keeper"
+
 %.del:
 	[ ! -e "$(*)" ] || mv --backup=numbered "$(*)" "$(*).`date +%Y-%m-%d`"
 	
