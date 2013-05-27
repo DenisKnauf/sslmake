@@ -1,0 +1,68 @@
+#!/bin/sh
+# vi:set filetype=makefile
+NULL=0  exec make "CALL=$0" "EXE=`which $0`" -f "`which $0`" -- "$@"
+
+EXE ?= sslmake
+CALL ?= `which $(EXE)`
+DEFAULTCFG ?= template.cfg
+S ?= .
+CERTTOOL ?= /usr/bin/certtool
+GENKEY = $(CERTTOOL) --generate-privkey --disable-quick-random
+GENREQ = $(CERTTOOL) --generate-request
+GENCRT = $(CERTTOOL) --generate-certificate
+
+all: help
+--help -h: help
+--renew -r: renew
+--build -b: build
+
+help:
+	@echo -e "\
+Creates SSL-keys and -certificate requests named %.key/%.csr (replace % by name)\n\
+  --help -h: Display this help message.\n\
+  --renew -r:  Renews %.csr for all %.key.\n\
+  --build -b:  Builds %.csr and %.key for every %.cfg if doesn't exist.\n\
+  %.cfg:  Copies template.cfg to %.cfg. Now you can edit %.cfg and go on.\n\
+  %.key:  Creates %.key.\n\
+  %.csr:  Creates %.csr and if doesn't exists %.key. Send this to your CA-Provider."
+
+renew: $(patsubst %.key,%.csr.new,$(wildcard *.key))
+build: $(patsubst %.cfg,%csr,$(wildcard *.cfg))
+
+root.key:
+	@echo "root.crt keeper"
+root.crt:
+	@echo "root.crt keeper"
+
+%.del:
+	[ ! -e "$(*)" ] || mv --backup=numbered "$(*)" "$(*).`date +%Y-%m-%d`"
+	
+%.new: %.del
+	$(CALL) "$*"
+
+%.cfg:
+	cp "$(DEFAULTCFG)" "$(@)"
+
+%.key:
+	$(GENKEY) --outfile "$(@)" --sec-param normal
+
+%.csr: %.cfg %.key
+	$(GENREQ) --template "$(*).cfg" --load-privkey "$(*).key" --outfile "$(@)"
+
+.request.cfg:
+	echo "# sslmake-gnutls request template." > $(@)
+	echo "honor_crq_extensions" >> $(@)
+	echo "expiration_days = 365" >> $(@)
+
+%.crt: %.csr serial root.crt root.key .request.cfg
+	$(CERTTOOL) --crq-info --infile "$(*).csr"
+	@echo -n -e "\nOK?  Key Usage and prupose allowed?  Subject correct? [y/N] "
+	@read ok; [ "Xy" = "X$$ok" ] || exit 1
+	$(GENCRT) --load-request "$(*).csr" --load-ca-privkey root.key --load-ca-certificate root.crt --template .request.cfg --outfile "$(@)"
+
+%.pem: %.crt %.key
+	umask 177 ; cat $(^) > "$(@).bk"
+	mv "$(@).bk" "$(@)"
+
+.PHONY: all help build renew %.new %.del
+.PRECIOUS: %.csr %.key %.cfg %.pem
