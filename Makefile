@@ -9,8 +9,11 @@ all:
 
 install: install-openssl
 
-install-openssl:
+$(D)/$(EPREFIX):
+	install --owner root --group root --mode 0755 -d $(D)/$(EPREFIX)
+
+install-openssl: $(D)/$(EPREFIX)
 	install --owner root --group root --mode 0755 sslmake-openssl $(D)/$(EPREFIX)/sslmake
 
-install-gnutls:
+install-gnutls: $(D)/$(EPREFIX)
 	install --owner root --group root --mode 0755 sslmake-gnutls $(D)/$(EPREFIX)/sslmake
