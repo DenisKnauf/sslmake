@@ -5,9 +5,10 @@ D ?= /
 
 all:
 	@echo Choose: If you prefer openssl, use install-openssl. If you prefer gnutls, use install-gnutls.
-	@echo If you use install, openssl will be used.
+	@echo If you use install, gnutls will be used.
+	@echo gnutls has an easier configfile-format (%.cfg) instead of the a little more complex openssl format (%.cnf).
 
-install: install-openssl
+install: install-gnutls
 
 $(D)/$(EPREFIX):
 	install --owner root --group root --mode 0755 -d $(D)/$(EPREFIX)

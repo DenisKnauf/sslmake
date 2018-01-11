@@ -2,14 +2,17 @@
 # vi:set filetype=makefile
 NULL=0  exec make "CALL=$0" "EXE=`which $0`" -f "`which $0`" -- "$@"
 
-EXE ?= sslmake
+BITS ?= 4069
+EXE  ?= sslmake
 CALL ?= `which $(EXE)`
 DEFAULTCFG ?= template.cfg
-S ?= .
+S    ?= .
+
 CERTTOOL ?= /usr/bin/certtool
-GENKEY = $(CERTTOOL) --generate-privkey --disable-quick-random
-GENREQ = $(CERTTOOL) --generate-request
-GENCRT = $(CERTTOOL) --generate-certificate
+GENKEY   ?= $(CERTTOOL) --generate-privkey --disable-quick-random
+GENREQ   ?= $(CERTTOOL) --generate-request
+GENCRT   ?= $(CERTTOOL) --generate-certificate
+GENDH    ?= $(CERTTOOL) --generate-dh-params --disable-quick-random
 
 all: help
 --help -h: help
@@ -19,6 +22,7 @@ all: help
 help:
 	@echo -e "\
 Creates SSL-keys and -certificate requests named %.key/%.csr (replace % by name)\n\
+  BITS=strength: for setting bit-strength (default $(BITS))\n\
   --help -h: Display this help message.\n\
   --renew -r:  Renews %.csr for all %.key.\n\
   --build -b:  Builds %.csr and %.key for every %.cfg if doesn't exist.\n\
@@ -44,7 +48,10 @@ root.crt:
 	cp "$(DEFAULTCFG)" "$(@)"
 
 %.key:
-	$(GENKEY) --outfile "$(@)" --sec-param normal
+	$(GENKEY) --outfile "$(@)" --bits $(BITS)
+
+%.dh:
+	umask 177 ; $(GENDH) --outfile "$(@)" --bits $(BITS)
 
 %.csr: %.cfg %.key
 	$(GENREQ) --template "$(*).cfg" --load-privkey "$(*).key" --outfile "$(@)"
