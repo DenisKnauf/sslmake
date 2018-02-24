@@ -2,7 +2,7 @@
 # vi:set filetype=makefile
 NULL=0  exec make "CALL=$0" "EXE=`which $0`" -f "`which $0`" -- "$@"
 
-BITS ?= 4069
+BITS ?= 4096
 EXE  ?= sslmake
 CALL ?= `which $(EXE)`
 DEFAULTCFG ?= template.cfg
